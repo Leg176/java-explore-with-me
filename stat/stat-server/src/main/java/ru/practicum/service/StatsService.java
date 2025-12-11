@@ -7,5 +7,6 @@ import java.util.List;
 
 public interface StatsService {
     void createHit(RequestHitDto dto);
+
     List<StatDto> getStatDto(LocalDateTime start, LocalDateTime end, List<String> uris, boolean unique);
 }
