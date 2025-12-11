@@ -1,4 +1,3 @@
-FROM eclipse-temurin:21-jre-jammy
-VOLUME /tmp
-RUN find target -name "*.jar" -not -name "*.original" -exec cp {} /app.jar \;
-ENTRYPOINT ["sh", "-c", "java ${JAVA_OPTS} -jar /app.jar"]
+FROM amazoncorretto:21
+COPY target/*.jar stats-server.jar
+ENTRYPOINT ["java", "-jar", "/stats-server.jar"]
