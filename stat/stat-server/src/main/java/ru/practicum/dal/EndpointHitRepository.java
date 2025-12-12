@@ -13,7 +13,7 @@ public interface EndpointHitRepository extends JpaRepository<EndpointHit, Long> 
             """
             SELECT new ru.practicum.dto.StatDto(eh.app, eh.uri, COUNT(eh.id))
             FROM EndpointHit eh
-            WHERE eh.timestamp
+            WHERE eh.time_request
             BETWEEN :start
             AND :end
             AND (:uris IS NULL OR eh.uri in :uris)
@@ -29,7 +29,7 @@ public interface EndpointHitRepository extends JpaRepository<EndpointHit, Long> 
             """
             SELECT new ru.practicum.dto.StatDto(eh.app, eh.uri, COUNT(DISTINCT eh.ip))
             FROM EndpointHit eh
-            WHERE eh.timestamp
+            WHERE eh.time_request
             BETWEEN :start
             AND :end
             AND (:uris IS NULL OR eh.uri in :uris)

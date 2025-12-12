@@ -14,19 +14,20 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class StatsServiceImpl implements StatsService {
 
     private final HitMapper hitMapper;
     private final EndpointHitRepository endpointHitRepository;
 
     @Override
+    @Transactional
     public void createHit(RequestHitDto dto) {
         EndpointHit endpointHit = hitMapper.mapToEndpointHit(dto);
         EndpointHit saveHit = endpointHitRepository.save(endpointHit);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<StatDto> getStatDto(LocalDateTime start, LocalDateTime end, List<String> uris, boolean unique) {
         if (start == null || end == null) {
             throw new BadRequestException("Временной промежуток должен быть задан");
