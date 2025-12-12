@@ -51,11 +51,8 @@ public class StatClient {
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(serverUrl + "/stats")
                 .queryParam("start", start)
                 .queryParam("end", end);
-
         if (uris != null && !uris.isEmpty()) {
-            for (String uri : uris) {
-                builder.queryParam("uris", uri);
-            }
+            builder.queryParam("uris", uris.toArray());
         }
 
         String url = builder.build().encode().toUriString();
