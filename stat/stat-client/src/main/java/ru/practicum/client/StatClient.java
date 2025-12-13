@@ -15,11 +15,13 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+import static ru.practicum.constants.StandardDateTimeFormats.DATE_TIME_FORMAT;
+
 @Component
 @Slf4j
 public class StatClient {
 
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern(DATE_TIME_FORMAT);
 
     private final RestTemplate restTemplate;
 
@@ -59,8 +61,8 @@ public class StatClient {
         String endStr = end.format(FORMATTER);
 
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(serverUrl + "/stats")
-                .queryParam("start", startStr)    // Используем строки
-                .queryParam("end", endStr)        // Используем строки
+                .queryParam("start", startStr)
+                .queryParam("end", endStr)
                 .queryParam("unique", unique);
 
         if (uris != null && !uris.isEmpty()) {
