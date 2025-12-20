@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.*;
-import ru.practicum.event.model.Location;
 import ru.practicum.event.model.UpdateAdminStateAction;
 
 import java.time.LocalDateTime;
@@ -28,7 +27,7 @@ public class UpdateEventAdminRequest {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DATE_TIME_FORMAT)
     private LocalDateTime eventDate;
     @Valid
-    private Location location;
+    private LocationDto location;
     private Boolean paid;
     @Min(value = 0, message = "Лимит участников не может быть отрицательным")
     private Integer participantLimit;

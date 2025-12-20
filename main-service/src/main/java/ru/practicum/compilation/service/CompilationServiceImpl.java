@@ -14,6 +14,7 @@ import ru.practicum.compilation.mapper.CompilationMapper;
 import ru.practicum.compilation.model.Compilation;
 import ru.practicum.error.exceptions.BadRequestException;
 import ru.practicum.error.exceptions.NotFoundException;
+import ru.practicum.event.dal.EventRepository;
 import ru.practicum.event.model.Event;
 
 import java.util.*;
@@ -75,8 +76,7 @@ public class CompilationServiceImpl implements CompilationService {
             }
         }
 
-        Compilation updateCompilation = repository.save(compilation);
-        return compilationMapper.mapToCompilationDto(updateCompilation);
+        return compilationMapper.mapToCompilationDto(compilation);
     }
 
     @Override
@@ -94,11 +94,10 @@ public class CompilationServiceImpl implements CompilationService {
         Page<Compilation> compilationsPage;
         if (pinned == null) {
             compilationsPage = repository.findAll(pageable);
-            return compilationMapper.toDtoPage(compilationsPage).getContent();
         } else {
             compilationsPage = repository.findByPinned(pinned, pageable);
-            return compilationMapper.toDtoPage(compilationsPage).getContent();
         }
+        return compilationMapper.toDtoPage(compilationsPage).getContent();
     }
 
     private Compilation isContainsCompilation(Long id) {

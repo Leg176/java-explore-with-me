@@ -1,0 +1,311 @@
+package ru.practicum.event.service;
+
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.category.dal.CategoryRepository;
+import ru.practicum.category.model.Category;
+import ru.practicum.client.StatClient;
+import ru.practicum.dto.RequestHitDto;
+import ru.practicum.error.exceptions.*;
+import ru.practicum.event.dal.EventRepository;
+import ru.practicum.event.dto.*;
+import ru.practicum.event.mapper.EventMapper;
+import ru.practicum.event.model.Event;
+import ru.practicum.event.model.EventState;
+import ru.practicum.user.dal.UserRepository;
+import ru.practicum.user.model.User;
+
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import static ru.practicum.event.model.EventState.*;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class EventServiceImpl implements EventService {
+
+    private final EventMapper eventMapper;
+    private final EventRepository repository;
+    private final UserRepository userRepository;
+    private final CategoryRepository categoryRepository;
+
+    private final StatClient statClient;
+
+    @Override
+    @Transactional
+    public EventFullDto saveEvent(Long userId, NewEventDto request) {
+        User user = isContainsUser(userId);
+        if (request == null) {
+            throw new BadRequestException("Запрос на добавление нового события не может быть null");
+        }
+        checkEventDate(request.getEventDate());
+        Category category = isContainsCategory(request.getCategory());
+
+        Event event = eventMapper.mapToEvent(request);
+        event.setInitiator(user);
+        event.setCategory(category);
+
+        Event saveEvent = repository.save(event);
+
+        return eventMapper.mapToEventFullDto(saveEvent);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Collection<EventShortDto> getEventsUser(Long userId, int from, int size) {
+        User user = isContainsUser(userId);
+        validatePagination(from, size);
+
+        Pageable pageable = PageRequest.of(from / size, size);
+        Page<Event> eventsPage = repository.findByInitiator(user, pageable);
+        return eventMapper.toDtoPage(eventsPage).getContent();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public EventFullDto getEventUser(Long userId, Long eventId) {
+        User user = isContainsUser(userId);
+        Event event = checkEventForUserAffiliation(user, eventId);
+        return eventMapper.mapToEventFullDto(event);
+    }
+
+    @Override
+    @Transactional
+    public EventFullDto updateEventUser(Long userId, Long eventId, UpdateEventUserRequest request) {
+        if (request == null) {
+            throw new BadRequestException("Запрос на обновление события не может быть null");
+        }
+        User user = isContainsUser(userId);
+        Event event = checkEventForUserAffiliation(user, eventId);
+        checkEventCanBeUpdated(event);
+        eventMapper.updateFromRequestUser(request, event);
+
+        if (request.getCategory() != null) {
+            Category category = isContainsCategory(request.getCategory());
+            event.setCategory(category);
+        }
+
+        if (request.getEventDate() != null) {
+            LocalDateTime dateTime = LocalDateTime.now().plusHours(2);
+            if (request.getEventDate().isBefore(dateTime)) {
+                throw new ForbiddenException("Событие не удовлетворяет правилам редактирования");
+            }
+            event.setEventDate(request.getEventDate());
+        }
+
+        if (request.getStateAction() != null) {
+            switch (request.getStateAction()) {
+                case SEND_TO_REVIEW:
+                    event.setEventState(PENDING);
+                    break;
+                case CANCEL_REVIEW:
+                    event.setEventState(CANCELED);
+                    break;
+                default:
+                    throw new BadRequestException("Неизвестное значение: " + request.getStateAction());
+            }
+        }
+        return eventMapper.mapToEventFullDto(event);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Collection<EventFullDto> getEventsForParameters(Collection<Long> users, Collection<EventState> states,
+                                                           Collection<Long> categories, LocalDateTime rangeStart,
+                                                           LocalDateTime rangeEnd, int from, int size) {
+
+        Collection<Long> usersId = (users == null || users.isEmpty()) ? null : users;
+        Collection<Long> categoriesId = (categories == null || categories.isEmpty()) ? null : categories;
+        Collection<EventState> stateValid = (states == null || states.isEmpty()) ? null : states;
+
+        if ((rangeStart != null && rangeEnd != null) && rangeStart.isAfter(rangeEnd)) {
+            throw new BadRequestException("rangeStart не может быть позже rangeEnd");
+        }
+
+        validatePagination(from, size);
+        Pageable pageable = PageRequest.of(from / size, size);
+        Page<Event> events = repository.findByParameters(usersId, stateValid, categoriesId,
+                rangeStart, rangeEnd, pageable);
+
+        return eventMapper.toFullDtoPage(events).getContent();
+    }
+
+    @Override
+    @Transactional
+    public EventFullDto eventUpdateAdmin(Long eventId, UpdateEventAdminRequest request) {
+        if (request == null) {
+            throw new BadRequestException("Запрос на обновление события не может быть null");
+        }
+        Event event = isContainsEvent(eventId);
+
+        eventMapper.updateFromRequestAdmin(request, event);
+
+        if (request.getCategory() != null) {
+            Category category = isContainsCategory(request.getCategory());
+            event.setCategory(category);
+        }
+
+        if (request.getEventDate() != null) {
+            event.setEventDate(request.getEventDate());
+        }
+
+        if (event.getPublishedOn() != null && request.getEventDate() != null) {
+            checkEventCanBeUpdatedAdmin(event);
+        }
+
+        if (request.getStateAction() != null) {
+            switch (request.getStateAction()) {
+                case PUBLISH_EVENT:
+                    if (event.getEventState() != PENDING) {
+                        throw new ConflictException("Событие можно публиковать, только если оно в состоянии ожидания публикации");
+                    }
+                    LocalDateTime minEventDate = LocalDateTime.now().plusHours(1);
+                    if (event.getEventDate().isBefore(minEventDate)) {
+                        throw new ConflictException("Событие должно начинаться не ранее чем через 1 час");
+                    }
+                    event.setPublishedOn(LocalDateTime.now());
+                    event.setEventState(PUBLISHED);
+                    break;
+                case REJECT_EVENT:
+                    if (event.getEventState() == PUBLISHED) {
+                        throw new ConflictException("Событие можно отклонить, только если оно не опубликовано");
+                    }
+                    event.setEventState(CANCELED);
+                    break;
+                default:
+                    throw new BadRequestException("Неизвестное значение: " + request.getStateAction());
+            }
+        }
+        return eventMapper.mapToEventFullDto(event);
+    }
+
+    @Override
+    @Transactional
+    public EventFullDto getEvent(Long eventId, HttpServletRequest servletRequest) {
+        Optional<Event> eventOpt = repository.findByIdAndEventState(eventId, PUBLISHED);
+        if (eventOpt.isEmpty()) {
+            throw new NotFoundException("Событие с id " + eventId + " не найдено");
+        }
+        repository.incrementViews(eventId);
+
+        RequestHitDto requestHitDto = RequestHitDto.builder()
+                .app("ewm-main-service")
+                .uri("/events/" + eventId)
+                .ip(servletRequest.getRemoteAddr())
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        statClient.createHit(requestHitDto);
+        Optional<Event> event = repository.findById(eventId);
+
+        return eventMapper.mapToEventFullDto(event.get());
+    }
+
+    public Collection<EventFullDto> getEventsPublic(String text, Collection<Long> categories, Boolean paid,
+                                                    LocalDateTime rangeStart, LocalDateTime rangeEnd, boolean onlyAvailable,
+                                                    String sort, int from, int size, HttpServletRequest request) {
+
+        validatePagination(from, size);
+
+        Collection<Long> categoryId = (categories != null && !categories.isEmpty()) ? categories : null;
+        LocalDateTime dataTime = (rangeStart == null) ? LocalDateTime.now() : rangeStart;
+
+        Sort sortBy;
+        if ("EVENT_DATE".equals(sort)) {
+            sortBy = Sort.by("eventDate");
+        } else if ("VIEWS".equals(sort)) {
+            sortBy = Sort.by("views");
+        } else {
+            sortBy = Sort.unsorted();
+        }
+        Pageable pageable = PageRequest.of(from / size, size, sortBy.descending());
+
+        Page<Event> eventPage = repository.findByParametersForPublicController(text, categoryId, dataTime,
+                rangeEnd, paid, pageable);
+
+        List<Event> filterEvents;
+        if (onlyAvailable) {
+            filterEvents = eventPage.getContent().stream()
+                    .filter(event -> event.getParticipantLimit() == 0 ||
+                            event.getConfirmedRequests() < event.getParticipantLimit())
+                    .collect(Collectors.toList());
+        } else {
+            filterEvents = eventPage.getContent();
+        }
+        return eventMapper.toFullDtoList(filterEvents);
+    }
+
+    private Event checkEventForUserAffiliation( User initiator, Long eventId) {
+        Optional<Event> optEvent = repository.findByIdAndInitiator(eventId, initiator);
+        if (optEvent.isEmpty()) {
+            throw new NotFoundException("Событие c eventId = " + eventId + " , пользователя с userId " + initiator.getId() + " не найдено");
+        }
+        return optEvent.get();
+    }
+
+    private Event isContainsEvent(Long id) {
+        Optional<Event> optEvent = repository.findById(id);
+        if (optEvent.isEmpty()) {
+            throw new NotFoundException("Событие с id: " + id + " в базе отсутствует");
+        }
+        return optEvent.get();
+    }
+
+    private User isContainsUser(Long id) {
+        Optional<User> optUser = userRepository.findById(id);
+        if (optUser.isEmpty()) {
+            throw new NotFoundException("Пользователь с id: " + id + " в базе отсутствует");
+        }
+        return optUser.get();
+    }
+
+    private Category isContainsCategory(Long id) {
+        Optional<Category> optCategories = categoryRepository.findById(id);
+        if (optCategories.isEmpty()) {
+            throw new NotFoundException("Категория с id: " + id + " в базе отсутствует");
+        }
+        return optCategories.get();
+    }
+
+    private void checkEventDate(LocalDateTime eventDate) {
+        LocalDateTime dateTime = LocalDateTime.now().plusHours(2);
+        if (eventDate.isBefore(dateTime)) {
+            throw new ConflictException("Событие должно быть запланировано не ранее чем за 2 часа до начала");
+        }
+    }
+
+    private void validatePagination(int from, int size) {
+        if (from < 0) {
+            throw new BadRequestException("Параметр from не может быть отрицательным");
+        }
+        if (size <= 0) {
+            throw new BadRequestException("Параметр size не может быть отрицательным или равным 0");
+        }
+    }
+
+    private void checkEventCanBeUpdated(Event event) {
+        if (event.getEventState() != CANCELED &&
+                event.getEventState() != PENDING) {
+            throw new ForbiddenException("Событие не удовлетворяет правилам редактирования");
+        }
+    }
+
+    private void checkEventCanBeUpdatedAdmin(Event event) {
+        if (event.getPublishedOn() == null) {
+            return;
+        }
+        if (event.getEventDate().isBefore(event.getPublishedOn().plusHours(1))) {
+            throw new ConflictException("Дата начала изменяемого события должна быть не ранее чем за час от даты публикации.");
+        }
+    }
+}

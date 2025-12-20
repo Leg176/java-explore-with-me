@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.*;
-import ru.practicum.event.model.Location;
 
 import java.time.LocalDateTime;
 
@@ -30,7 +29,7 @@ public class NewEventDto {
     private LocalDateTime eventDate;
     @NotNull(message = "Координаты проведения события должны быть указаны")
     @Valid
-    private Location location;
+    private LocationDto location;
     @Builder.Default
     private Boolean paid = false;
     @Builder.Default

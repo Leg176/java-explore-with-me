@@ -14,6 +14,7 @@ import ru.practicum.category.model.Category;
 import ru.practicum.error.exceptions.BadRequestException;
 import ru.practicum.error.exceptions.ConflictException;
 import ru.practicum.error.exceptions.NotFoundException;
+import ru.practicum.event.dal.EventRepository;
 
 import java.util.Collection;
 import java.util.Optional;
@@ -25,6 +26,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository repository;
     private final CategoryMapper categoryMapper;
+    private final EventRepository eventRepository;
 
     @Override
     @Transactional
@@ -40,8 +42,11 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional
-    public void deleteCategory(Long catId) {  // ДОПИСАТЬ проверку на привязанность к событиям
-        isContainsCategory(catId);
+    public void deleteCategory(Long catId) {
+        Category category = isContainsCategory(catId);
+        if (eventRepository.existsByCategory(category)) {
+            throw new ConflictException("К данной категории привязано событие");
+        }
         repository.deleteById(catId);
     }
 

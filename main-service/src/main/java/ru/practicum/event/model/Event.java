@@ -34,7 +34,7 @@ public class Event {
     private LocalDateTime eventDate;
     @Column(name = "published_on")
     private LocalDateTime publishedOn;
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
     @JoinColumn(name = "location_id", nullable = false)
     private Location location;
     @Column(name = "paid", nullable = false)
