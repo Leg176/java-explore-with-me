@@ -53,6 +53,17 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     @Query("UPDATE Event e SET e.views = COALESCE(e.views, 0) + 1 WHERE e.id = :eventId")
     void incrementViews(@Param("eventId") Long eventId);
 
+    @Modifying
+    @Query("UPDATE Event e SET e.confirmedRequests = COALESCE(e.confirmedRequests, 0) + 1 " +
+            "WHERE e.id = :eventId " +
+            "AND (e.participantLimit = 0 OR e.confirmedRequests < e.participantLimit)")
+    int incrementConfirmedRequestsIfWithinLimit(@Param("eventId") Long eventId);
+
+    @Modifying
+    @Query("UPDATE Event e SET e.confirmedRequests = GREATEST(COALESCE(e.confirmedRequests, 1) - 1, 0) " +
+            "WHERE e.id = :eventId")
+    void decrementConfirmedRequests(@Param("eventId") Long eventId);
+
     @Query("SELECT DISTINCT e FROM Event e " +
             "LEFT JOIN FETCH e.category " +
             "LEFT JOIN FETCH e.initiator " +

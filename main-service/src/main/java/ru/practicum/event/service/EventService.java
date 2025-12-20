@@ -1,8 +1,10 @@
 package ru.practicum.event.service;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.web.bind.annotation.PathVariable;
 import ru.practicum.event.dto.*;
 import ru.practicum.event.model.EventState;
+import ru.practicum.request.dto.ParticipationRequestDto;
 
 import java.time.LocalDateTime;
 import java.util.Collection;

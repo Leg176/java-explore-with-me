@@ -200,7 +200,7 @@ public class EventServiceImpl implements EventService {
 
         RequestHitDto requestHitDto = RequestHitDto.builder()
                 .app("ewm-main-service")
-                .uri("/events/" + eventId)
+                .uri(servletRequest.getRequestURI())
                 .ip(servletRequest.getRemoteAddr())
                 .timestamp(LocalDateTime.now())
                 .build();
@@ -211,6 +211,8 @@ public class EventServiceImpl implements EventService {
         return eventMapper.mapToEventFullDto(event.get());
     }
 
+    @Override
+    @Transactional
     public Collection<EventFullDto> getEventsPublic(String text, Collection<Long> categories, Boolean paid,
                                                     LocalDateTime rangeStart, LocalDateTime rangeEnd, boolean onlyAvailable,
                                                     String sort, int from, int size, HttpServletRequest request) {
@@ -234,6 +236,7 @@ public class EventServiceImpl implements EventService {
                 rangeEnd, paid, pageable);
 
         List<Event> filterEvents;
+
         if (onlyAvailable) {
             filterEvents = eventPage.getContent().stream()
                     .filter(event -> event.getParticipantLimit() == 0 ||
@@ -242,7 +245,22 @@ public class EventServiceImpl implements EventService {
         } else {
             filterEvents = eventPage.getContent();
         }
-        return eventMapper.toFullDtoList(filterEvents);
+
+        filterEvents.forEach(event -> repository.incrementViews(event.getId()));
+
+        List<Event> updatedEvents = filterEvents.stream()
+                .map(event -> repository.findById(event.getId()).orElse(event))
+                .collect(Collectors.toList());
+
+        RequestHitDto requestHitDto = RequestHitDto.builder()
+                .app("ewm-main-service")
+                .uri(request.getRequestURI())
+                .ip(request.getRemoteAddr())
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        statClient.createHit(requestHitDto);
+        return eventMapper.toFullDtoList(updatedEvents);
     }
 
     private Event checkEventForUserAffiliation( User initiator, Long eventId) {
