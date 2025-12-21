@@ -24,7 +24,7 @@ public class ApiError {
         private String reason;
         private String message;
         @Builder.Default
-        private List<String> errors = new ArrayList<>();;
+        private List<String> errors = new ArrayList<>();
 
         public static ApiError of(
                 HttpStatus status,

@@ -272,7 +272,7 @@ public class EventServiceImpl implements EventService {
         return eventMapper.toFullDtoList(updatedEvents);
     }
 
-    private Event checkEventForUserAffiliation( User initiator, Long eventId) {
+    private Event checkEventForUserAffiliation(User initiator, Long eventId) {
         Optional<Event> optEvent = repository.findByIdAndInitiator(eventId, initiator);
         if (optEvent.isEmpty()) {
             throw new NotFoundException("Событие c eventId = " + eventId + " , пользователя с userId " + initiator.getId() + " не найдено");
