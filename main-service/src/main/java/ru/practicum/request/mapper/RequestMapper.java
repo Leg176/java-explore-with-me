@@ -15,6 +15,8 @@ public interface RequestMapper {
 
     @Mapping(target = "created", source = "request.created",
             dateFormat = DATE_TIME_FORMAT)
+    @Mapping(target = "event", source = "request.event.id")
+    @Mapping(target = "requester", source = "request.requester.id")
     ParticipationRequestDto mapToParticipationRequestDto(ParticipationRequest request);
 
     default List<ParticipationRequestDto> toFullDtoList(List<ParticipationRequest> requests) {
