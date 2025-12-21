@@ -17,12 +17,12 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
     public UserDto create(@RequestBody @Valid NewUserRequest request) {
         return userService.saveUser(request);
     }
 
     @GetMapping
-    @ResponseStatus(HttpStatus.CREATED)
     public Collection<UserDto> getUsers(@RequestParam(required = false) Collection<Long> ids,
                             @RequestParam(defaultValue = "0") Integer from,
                             @RequestParam(defaultValue = "10") Integer size) {
@@ -30,6 +30,7 @@ public class UserController {
     }
 
     @DeleteMapping("/{userId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteUser(@PathVariable Long userId) {
         userService.deleteUser(userId);
     }

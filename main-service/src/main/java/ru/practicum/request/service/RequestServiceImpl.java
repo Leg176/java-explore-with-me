@@ -36,6 +36,9 @@ public class RequestServiceImpl implements RequestService {
     @Override
     @Transactional
     public ParticipationRequestDto saveRequest(Long userId, Long eventId) {
+        if (eventId == null) {
+            throw new BadRequestException("Id события должно быть указано");
+        }
         Event event = isContainsEvent(eventId);
         User user = isContainsUser(userId);
 

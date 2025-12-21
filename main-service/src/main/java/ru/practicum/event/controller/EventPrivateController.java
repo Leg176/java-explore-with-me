@@ -2,6 +2,7 @@ package ru.practicum.event.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.event.dto.EventFullDto;
 import ru.practicum.event.dto.EventShortDto;
@@ -24,6 +25,7 @@ public class EventPrivateController {
     private final RequestService requestService;
 
     @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
     public EventFullDto create(@PathVariable Long userId,
                                @RequestBody @Valid NewEventDto request) {
         return eventService.saveEvent(userId, request);
@@ -45,6 +47,7 @@ public class EventPrivateController {
     public EventFullDto updateEventUser(@PathVariable Long userId,
                                         @PathVariable Long eventId,
                                         @RequestBody @Valid UpdateEventUserRequest request) {
+
         return eventService.updateEventUser(userId, eventId, request);
     }
 

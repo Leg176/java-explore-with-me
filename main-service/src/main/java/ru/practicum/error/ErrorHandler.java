@@ -93,24 +93,6 @@ public class ErrorHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiError> handleAllExceptions(Exception ex,
-                                                        HttpServletRequest request) {
-        log.error("Internal error [{} {}]: {}",
-                request.getMethod(),
-                request.getRequestURI(),
-                ex.getMessage(), ex);
-
-        ApiError error = ApiError.of(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                INTERNAL_ERROR,
-                "An unexpected error occurred",
-                null
-        );
-
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-    }
-
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiError> handleValidationExceptions(
             MethodArgumentNotValidException ex,
@@ -135,5 +117,23 @@ public class ErrorHandler {
         );
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiError> handleAllExceptions(Exception ex,
+                                                        HttpServletRequest request) {
+        log.error("Internal error [{} {}]: {}",
+                request.getMethod(),
+                request.getRequestURI(),
+                ex.getMessage(), ex);
+
+        ApiError error = ApiError.of(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                INTERNAL_ERROR,
+                "An unexpected error occurred",
+                null
+        );
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }
 }

@@ -18,9 +18,9 @@ public class Event {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(name = "annotation", nullable = false)
+    @Column(name = "annotation", nullable = false, length = 2000)
     private String annotation;
-    @Column(name = "description", nullable = false)
+    @Column(name = "description", nullable = false, length = 7000)
     private String description;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -48,7 +48,7 @@ public class Event {
     @Enumerated(EnumType.STRING)
     @Column(name = "event_state", nullable = false)
     private EventState eventState;
-    @Column(name = "title", nullable = false)
+    @Column(name = "title", nullable = false, length = 120)
     private String title;
     @Column(name = "views")
     private Long views;

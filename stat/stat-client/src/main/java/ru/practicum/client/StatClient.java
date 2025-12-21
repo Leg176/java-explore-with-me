@@ -15,13 +15,12 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-import static ru.practicum.constants.StandardDateTimeFormats.DATE_TIME_FORMAT;
-
 @Component
 @Slf4j
 public class StatClient {
 
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern(DATE_TIME_FORMAT);
+    private static final DateTimeFormatter FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
     private final RestTemplate restTemplate;
 
@@ -97,6 +96,27 @@ public class StatClient {
         }
 
         return List.of();
+    }
+
+    public Long getViewsForUri(String uri) {
+        List<String> uris = List.of(uri);
+        LocalDateTime end = LocalDateTime.now();
+        LocalDateTime start = end.minusMonths(1);
+
+        log.info("Запрос просмотров для URI: {}", uri);
+
+        List<StatDto> stats = getStats(start, end, uris, true);
+
+        System.out.println(stats);
+
+        if (stats != null && !stats.isEmpty()) {
+            Long views = stats.get(0).getHits();
+            log.debug("Для URI {} найдено {} просмотров", uri, views);
+            return views;
+        }
+
+        log.debug("Для URI {} статистика не найдена", uri);
+        return 0L;
     }
 
     private HttpHeaders defaultHeaders() {

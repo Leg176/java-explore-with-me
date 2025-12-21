@@ -40,6 +40,7 @@ public class EventController {
                                                     @RequestParam(defaultValue = "0") Integer from,
                                                     @RequestParam(defaultValue = "10") Integer size,
                                                     HttpServletRequest request) {
+
         return eventService.getEventsPublic(text, categories, paid,
                 rangeStart, rangeEnd, onlyAvailable, sort, from, size, request);
     }

@@ -50,10 +50,6 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             Pageable pageable);
 
     @Modifying
-    @Query("UPDATE Event e SET e.views = COALESCE(e.views, 0) + 1 WHERE e.id = :eventId")
-    void incrementViews(@Param("eventId") Long eventId);
-
-    @Modifying
     @Query("UPDATE Event e SET e.confirmedRequests = COALESCE(e.confirmedRequests, 0) + 1 " +
             "WHERE e.id = :eventId " +
             "AND (e.participantLimit = 0 OR e.confirmedRequests < e.participantLimit)")

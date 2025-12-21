@@ -27,7 +27,7 @@ public class Compilation {
     private Set<Event> events = new HashSet<>();
     @Column(name = "pinned", nullable = false)
     private Boolean pinned;
-    @Column(name = "title", nullable = false)
+    @Column(name = "title", nullable = false, length = 50)
     private String title;
 
     @Override

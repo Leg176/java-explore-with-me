@@ -54,6 +54,8 @@ public class EventServiceImpl implements EventService {
         Event event = eventMapper.mapToEvent(request);
         event.setInitiator(user);
         event.setCategory(category);
+        event.setCreatedOn(LocalDateTime.now());
+        event.setEventState(PENDING);
 
         Event saveEvent = repository.save(event);
 
@@ -196,7 +198,6 @@ public class EventServiceImpl implements EventService {
         if (eventOpt.isEmpty()) {
             throw new NotFoundException("Событие с id " + eventId + " не найдено");
         }
-        repository.incrementViews(eventId);
 
         RequestHitDto requestHitDto = RequestHitDto.builder()
                 .app("ewm-main-service")
@@ -206,19 +207,29 @@ public class EventServiceImpl implements EventService {
                 .build();
 
         statClient.createHit(requestHitDto);
-        Optional<Event> event = repository.findById(eventId);
+        Event event = eventOpt.get();
 
-        return eventMapper.mapToEventFullDto(event.get());
+        Long views = statClient.getViewsForUri(servletRequest.getRequestURI());
+
+        if (!views.equals(event.getViews())) {
+            event.setViews(views);
+            repository.save(event);
+        }
+
+        return eventMapper.mapToEventFullDto(event);
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public Collection<EventFullDto> getEventsPublic(String text, Collection<Long> categories, Boolean paid,
                                                     LocalDateTime rangeStart, LocalDateTime rangeEnd, boolean onlyAvailable,
                                                     String sort, int from, int size, HttpServletRequest request) {
 
         validatePagination(from, size);
 
+        if ((rangeStart != null && rangeEnd != null) && rangeEnd.isBefore(rangeStart)) {
+            throw new BadRequestException("Дата окончания не может быть раньше даты начала");
+        }
         Collection<Long> categoryId = (categories != null && !categories.isEmpty()) ? categories : null;
         LocalDateTime dataTime = (rangeStart == null) ? LocalDateTime.now() : rangeStart;
 
@@ -245,8 +256,6 @@ public class EventServiceImpl implements EventService {
         } else {
             filterEvents = eventPage.getContent();
         }
-
-        filterEvents.forEach(event -> repository.incrementViews(event.getId()));
 
         List<Event> updatedEvents = filterEvents.stream()
                 .map(event -> repository.findById(event.getId()).orElse(event))
@@ -314,7 +323,7 @@ public class EventServiceImpl implements EventService {
     private void checkEventCanBeUpdated(Event event) {
         if (event.getEventState() != CANCELED &&
                 event.getEventState() != PENDING) {
-            throw new ForbiddenException("Событие не удовлетворяет правилам редактирования");
+            throw new ConflictException("Событие не удовлетворяет правилам редактирования");
         }
     }
 
