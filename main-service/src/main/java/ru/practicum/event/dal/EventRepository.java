@@ -70,12 +70,14 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             "AND (:categories IS NULL OR e.category.id IN :categories) " +
             "AND (:rangeStart IS NULL OR e.eventDate >= :rangeStart) " +
             "AND (:rangeEnd IS NULL OR e.eventDate <= :rangeEnd) " +
-            "AND (:paid IS NULL OR e.paid = :paid) ")
+            "AND (:paid IS NULL OR e.paid = :paid) " +
+            "AND (:onlyAvailable = false OR e.participantLimit = 0 OR e.confirmedRequests < e.participantLimit)")
     Page<Event> findByParametersForPublicController(
             @Param("text") String text,
             @Param("categories") Collection<Long> categories,
             @Param("rangeStart") LocalDateTime rangeStart,
             @Param("rangeEnd") LocalDateTime rangeEnd,
             @Param("paid") Boolean paid,
+            @Param("onlyAvailable") boolean onlyAvailable,
             Pageable pageable);
 }

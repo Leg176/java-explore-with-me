@@ -12,7 +12,7 @@ import java.util.List;
 import static ru.practicum.constants.StandardDateTimeFormats.DATE_TIME_FORMAT;
 import static ru.practicum.event.model.EventState.PENDING;
 
-@Mapper(componentModel = "spring", uses = {CategoryMapper.class, UserMapper.class, LocationMapper.class})
+@Mapper(componentModel = "spring", uses = {CategoryMapper.class, UserMapper.class})
 public interface EventMapper {
 
     @Mapping(target = "eventDate", source = "event.eventDate",
@@ -20,7 +20,6 @@ public interface EventMapper {
     @Mapping(target = "initiator", source = "event.initiator")
     @Mapping(target = "category", source = "event.category")
     @Mapping(target = "confirmedRequests", source = "event.confirmedRequests")
-    @Mapping(target = "views", source = "event.views")
     EventShortDto mapToEventShortDto(Event event);
 
     @Mapping(target = "id", ignore = true)
@@ -31,7 +30,6 @@ public interface EventMapper {
     @Mapping(target = "publishedOn", ignore = true)
     @Mapping(target = "confirmedRequests", ignore = true)
     @Mapping(target = "eventState", ignore = true)
-    @Mapping(target = "views", ignore = true)
     Event mapToEvent(NewEventDto request);
 
     @AfterMapping
@@ -39,7 +37,6 @@ public interface EventMapper {
         if (event.getCreatedOn() == null) event.setCreatedOn(LocalDateTime.now());
         if (event.getConfirmedRequests() == null) event.setConfirmedRequests(0L);
         if (event.getEventState() == null) event.setEventState(PENDING);
-        if (event.getViews() == null) event.setViews(0L);
     }
 
     @Mapping(target = "createdOn", source = "event.createdOn", dateFormat = DATE_TIME_FORMAT)
@@ -50,7 +47,6 @@ public interface EventMapper {
     @Mapping(target = "category", source = "event.category")
     @Mapping(target = "location", source = "event.location")
     @Mapping(target = "confirmedRequests", source = "event.confirmedRequests")
-    @Mapping(target = "views", source = "event.views")
     EventFullDto mapToEventFullDto(Event event);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
@@ -62,7 +58,6 @@ public interface EventMapper {
     @Mapping(target = "createdOn", ignore = true)
     @Mapping(target = "publishedOn", ignore = true)
     @Mapping(target = "confirmedRequests", ignore = true)
-    @Mapping(target = "views", ignore = true)
     @Mapping(target = "annotation", source = "request.annotation")
     @Mapping(target = "description", source = "request.description")
     @Mapping(target = "location", source = "request.location")
@@ -81,7 +76,6 @@ public interface EventMapper {
     @Mapping(target = "createdOn", ignore = true)
     @Mapping(target = "publishedOn", ignore = true)
     @Mapping(target = "confirmedRequests", ignore = true)
-    @Mapping(target = "views", ignore = true)
     @Mapping(target = "annotation", source = "annotation")
     @Mapping(target = "description", source = "description")
     @Mapping(target = "location", source = "location")

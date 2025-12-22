@@ -5,13 +5,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.category.dal.CategoryRepository;
 import ru.practicum.category.model.Category;
 import ru.practicum.client.StatClient;
 import ru.practicum.dto.RequestHitDto;
+import ru.practicum.dto.StatDto;
 import ru.practicum.error.exceptions.*;
 import ru.practicum.event.dal.EventRepository;
 import ru.practicum.event.dto.*;
@@ -22,9 +22,7 @@ import ru.practicum.user.dal.UserRepository;
 import ru.practicum.user.model.User;
 
 import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static ru.practicum.event.model.EventState.*;
@@ -45,9 +43,11 @@ public class EventServiceImpl implements EventService {
     @Transactional
     public EventFullDto saveEvent(Long userId, NewEventDto request) {
         User user = isContainsUser(userId);
+
         if (request == null) {
             throw new BadRequestException("Запрос на добавление нового события не может быть null");
         }
+
         checkEventDate(request.getEventDate());
         Category category = isContainsCategory(request.getCategory());
 
@@ -75,18 +75,20 @@ public class EventServiceImpl implements EventService {
     @Override
     public EventFullDto getEventUser(Long userId, Long eventId) {
         User user = isContainsUser(userId);
-        Event event = checkEventForUserAffiliation(user, eventId);
+        Event event = checkEventForUserAffiliation(userId, eventId);
         return eventMapper.mapToEventFullDto(event);
     }
 
     @Override
     @Transactional
     public EventFullDto updateEventUser(Long userId, Long eventId, UpdateEventUserRequest request) {
+
         if (request == null) {
             throw new BadRequestException("Запрос на обновление события не может быть null");
         }
+
         User user = isContainsUser(userId);
-        Event event = checkEventForUserAffiliation(user, eventId);
+        Event event = checkEventForUserAffiliation(userId, eventId);
         checkEventCanBeUpdated(event);
         eventMapper.updateFromRequestUser(request, event);
 
@@ -97,9 +99,11 @@ public class EventServiceImpl implements EventService {
 
         if (request.getEventDate() != null) {
             LocalDateTime dateTime = LocalDateTime.now().plusHours(2);
+
             if (request.getEventDate().isBefore(dateTime)) {
                 throw new ForbiddenException("Событие не удовлетворяет правилам редактирования");
             }
+
             event.setEventDate(request.getEventDate());
         }
 
@@ -115,6 +119,7 @@ public class EventServiceImpl implements EventService {
                     throw new BadRequestException("Неизвестное значение: " + request.getStateAction());
             }
         }
+
         return eventMapper.mapToEventFullDto(event);
     }
 
@@ -137,12 +142,13 @@ public class EventServiceImpl implements EventService {
 
         List<Event> eventList = events.getContent();
 
-        return eventMapper.toFullDtoList(eventList);
+        return loadStatForList(eventList);
     }
 
     @Override
     @Transactional
     public EventFullDto eventUpdateAdmin(Long eventId, UpdateEventAdminRequest request) {
+
         if (request == null) {
             throw new BadRequestException("Запрос на обновление события не может быть null");
         }
@@ -166,26 +172,33 @@ public class EventServiceImpl implements EventService {
         if (request.getStateAction() != null) {
             switch (request.getStateAction()) {
                 case PUBLISH_EVENT:
+
                     if (event.getEventState() != PENDING) {
                         throw new ConflictException("Событие можно публиковать, только если оно в состоянии ожидания публикации");
                     }
+
                     LocalDateTime minEventDate = LocalDateTime.now().plusHours(1);
+
                     if (event.getEventDate().isBefore(minEventDate)) {
                         throw new ConflictException("Событие должно начинаться не ранее чем через 1 час");
                     }
+
                     event.setPublishedOn(LocalDateTime.now());
                     event.setEventState(PUBLISHED);
                     break;
                 case REJECT_EVENT:
+
                     if (event.getEventState() == PUBLISHED) {
                         throw new ConflictException("Событие можно отклонить, только если оно не опубликовано");
                     }
+
                     event.setEventState(CANCELED);
                     break;
                 default:
                     throw new BadRequestException("Неизвестное значение: " + request.getStateAction());
             }
         }
+
         return eventMapper.mapToEventFullDto(event);
     }
 
@@ -193,13 +206,16 @@ public class EventServiceImpl implements EventService {
     @Transactional
     public EventFullDto getEvent(Long eventId, HttpServletRequest servletRequest) {
         Optional<Event> eventOpt = repository.findByIdAndEventState(eventId, PUBLISHED);
+
         if (eventOpt.isEmpty()) {
             throw new NotFoundException("Событие с id " + eventId + " не найдено");
         }
 
+        String uri = "/events/" + eventId;
+
         RequestHitDto requestHitDto = RequestHitDto.builder()
                 .app("ewm-main-service")
-                .uri(servletRequest.getRequestURI())
+                .uri(uri)
                 .ip(servletRequest.getRemoteAddr())
                 .timestamp(LocalDateTime.now())
                 .build();
@@ -207,14 +223,12 @@ public class EventServiceImpl implements EventService {
         statClient.createHit(requestHitDto);
         Event event = eventOpt.get();
 
-        Long views = statClient.getViewsForUri(servletRequest.getRequestURI());
+        Long views = loadViews(event, uri, true);
 
-        if (!views.equals(event.getViews())) {
-            event.setViews(views);
-            repository.save(event);
-        }
+        EventFullDto eventFullDto = eventMapper.mapToEventFullDto(event);
+        eventFullDto.setViews(views);
 
-        return eventMapper.mapToEventFullDto(event);
+        return eventFullDto;
     }
 
     @Override
@@ -225,36 +239,14 @@ public class EventServiceImpl implements EventService {
         if ((rangeStart != null && rangeEnd != null) && rangeEnd.isBefore(rangeStart)) {
             throw new BadRequestException("Дата окончания не может быть раньше даты начала");
         }
+
         Collection<Long> categoryId = (categories != null && !categories.isEmpty()) ? categories : null;
         LocalDateTime dataTime = (rangeStart == null) ? LocalDateTime.now() : rangeStart;
 
-        Sort sortBy;
-        if ("EVENT_DATE".equals(sort)) {
-            sortBy = Sort.by("eventDate");
-        } else if ("VIEWS".equals(sort)) {
-            sortBy = Sort.by("views");
-        } else {
-            sortBy = Sort.unsorted();
-        }
-        Pageable pageable = PageRequest.of(from / size, size, sortBy.descending());
+        Pageable pageable = PageRequest.of(from / size, size);
 
         Page<Event> eventPage = repository.findByParametersForPublicController(text, categoryId, dataTime,
-                rangeEnd, paid, pageable);
-
-        List<Event> filterEvents;
-
-        if (onlyAvailable) {
-            filterEvents = eventPage.getContent().stream()
-                    .filter(event -> event.getParticipantLimit() == 0 ||
-                            event.getConfirmedRequests() < event.getParticipantLimit())
-                    .collect(Collectors.toList());
-        } else {
-            filterEvents = eventPage.getContent();
-        }
-
-        List<Event> updatedEvents = filterEvents.stream()
-                .map(event -> repository.findById(event.getId()).orElse(event))
-                .collect(Collectors.toList());
+                rangeEnd, paid, onlyAvailable, pageable);
 
         RequestHitDto requestHitDto = RequestHitDto.builder()
                 .app("ewm-main-service")
@@ -264,49 +256,67 @@ public class EventServiceImpl implements EventService {
                 .build();
 
         statClient.createHit(requestHitDto);
-        return eventMapper.toFullDtoList(updatedEvents);
+        List<EventFullDto> eventFullDtoList = loadStatForList(eventPage.getContent());
+
+        if ("VIEWS".equals(sort)) {
+            eventFullDtoList.sort(Comparator.comparing(EventFullDto::getViews).reversed());
+        } else if ("EVENT_DATE".equals(sort)) {
+            eventFullDtoList.sort(Comparator.comparing(EventFullDto::getEventDate).reversed());
+        }
+
+        return eventFullDtoList;
     }
 
-    private Event checkEventForUserAffiliation(User initiator, Long eventId) {
-        Optional<Event> optEvent = repository.findByIdAndInitiator(eventId, initiator);
-        if (optEvent.isEmpty()) {
-            throw new NotFoundException("Событие c eventId = " + eventId + " , пользователя с userId " + initiator.getId() + " не найдено");
+    private Event checkEventForUserAffiliation(Long userId, Long eventId) {
+        Event event = isContainsEvent(eventId);
+
+        if (!event.getInitiator().getId().equals(userId)) {
+            throw new NotFoundException("Событие c eventId = " + eventId + " , пользователя с userId " + userId + " не найдено");
         }
-        return optEvent.get();
+
+        return event;
     }
 
     private Event isContainsEvent(Long id) {
         Optional<Event> optEvent = repository.findById(id);
+
         if (optEvent.isEmpty()) {
             throw new NotFoundException("Событие с id: " + id + " в базе отсутствует");
         }
+
         return optEvent.get();
     }
 
     private User isContainsUser(Long id) {
         Optional<User> optUser = userRepository.findById(id);
+
         if (optUser.isEmpty()) {
             throw new NotFoundException("Пользователь с id: " + id + " в базе отсутствует");
         }
+
         return optUser.get();
     }
 
     private Category isContainsCategory(Long id) {
         Optional<Category> optCategories = categoryRepository.findById(id);
+
         if (optCategories.isEmpty()) {
             throw new NotFoundException("Категория с id: " + id + " в базе отсутствует");
         }
+
         return optCategories.get();
     }
 
     private void checkEventDate(LocalDateTime eventDate) {
         LocalDateTime dateTime = LocalDateTime.now().plusHours(2);
+
         if (eventDate.isBefore(dateTime)) {
             throw new ConflictException("Событие должно быть запланировано не ранее чем за 2 часа до начала");
         }
     }
 
     private void checkEventCanBeUpdated(Event event) {
+
         if (event.getEventState() != CANCELED &&
                 event.getEventState() != PENDING) {
             throw new ConflictException("Событие не удовлетворяет правилам редактирования");
@@ -314,11 +324,78 @@ public class EventServiceImpl implements EventService {
     }
 
     private void checkEventCanBeUpdatedAdmin(Event event) {
+
         if (event.getPublishedOn() == null) {
             return;
         }
+
         if (event.getEventDate().isBefore(event.getPublishedOn().plusHours(1))) {
             throw new ConflictException("Дата начала изменяемого события должна быть не ранее чем за час от даты публикации.");
         }
+    }
+
+    private Long loadViews(Event event, String uri, boolean unique) {
+        List<StatDto> stats = statClient.getStats(event.getPublishedOn(), LocalDateTime.now(),
+                List.of(uri), true);
+
+        Long views;
+
+        if (stats != null && !stats.isEmpty()) {
+            views = stats.get(0).getHits();
+        } else {
+            views = 0L;
+        }
+
+        return views;
+    }
+
+    private List<EventFullDto> loadStatForList(List<Event> eventList) {
+        List<String> uris = eventList.stream()
+                .filter(event -> event.getEventState() == PUBLISHED && event.getPublishedOn() != null)
+                .map(event -> "/events/" + event.getId())
+                .collect(Collectors.toList());
+
+        Optional<LocalDateTime> minPublished = eventList.stream()
+                .filter(event -> event.getEventState() == PUBLISHED && event.getPublishedOn() != null)
+                .map(Event::getPublishedOn)
+                .min(LocalDateTime::compareTo);
+
+        if (!uris.isEmpty() && minPublished.isPresent()) {
+            List<StatDto> stats = statClient.getStats(
+                    minPublished.get(),
+                    LocalDateTime.now(),
+                    uris,
+                    true
+            );
+
+            Map<String, Long> viewsEvents = stats.stream()
+                    .collect(Collectors.toMap(
+                            StatDto::getUri,
+                            StatDto::getHits
+                    ));
+
+            return eventList.stream()
+                    .map(event -> {
+                        EventFullDto dto = eventMapper.mapToEventFullDto(event);
+
+                        if (event.getEventState() == PUBLISHED && event.getPublishedOn() != null) {
+                            String uri = "/events/" + event.getId();
+                            Long views = viewsEvents.getOrDefault(uri, 0L);
+                            dto.setViews(views);
+                        } else {
+                            dto.setViews(0L);
+                        }
+
+                        return dto;
+                    })
+                    .collect(Collectors.toList());
+        }
+        return eventList.stream()
+                .map(event -> {
+                    EventFullDto dto = eventMapper.mapToEventFullDto(event);
+                    dto.setViews(0L);
+                    return dto;
+                })
+                .collect(Collectors.toList());
     }
 }

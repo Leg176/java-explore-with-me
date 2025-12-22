@@ -34,8 +34,7 @@ public class Event {
     private LocalDateTime eventDate;
     @Column(name = "published_on")
     private LocalDateTime publishedOn;
-    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
-    @JoinColumn(name = "location_id", nullable = false)
+    @Embedded
     private Location location;
     @Column(name = "paid", nullable = false)
     private Boolean paid;
@@ -50,8 +49,6 @@ public class Event {
     private EventState eventState;
     @Column(name = "title", nullable = false, length = 120)
     private String title;
-    @Column(name = "views")
-    private Long views;
 
     @Override
     public boolean equals(Object o) {
