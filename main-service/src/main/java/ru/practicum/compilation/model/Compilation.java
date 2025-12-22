@@ -37,9 +37,4 @@ public class Compilation {
         Compilation compilation = (Compilation) o;
         return id != null && id.equals(compilation.id);
     }
-
-    @Override
-    public int hashCode() {
-        return getClass().hashCode();
-    }
 }

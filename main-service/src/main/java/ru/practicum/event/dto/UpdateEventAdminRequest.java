@@ -11,8 +11,7 @@ import java.time.LocalDateTime;
 
 import static ru.practicum.constans.StandardDateTimeFormats.DATE_TIME_FORMAT;
 
-@Setter
-@Getter
+@Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor

@@ -7,8 +7,7 @@ import lombok.*;
 import java.util.List;
 
 @Builder
-@Setter
-@Getter
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class UpdateCompilationRequest {

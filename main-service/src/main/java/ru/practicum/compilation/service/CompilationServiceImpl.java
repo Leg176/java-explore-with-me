@@ -21,7 +21,7 @@ import java.util.*;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
+@Transactional
 public class CompilationServiceImpl implements CompilationService {
 
     private final CompilationRepository repository;
@@ -29,18 +29,21 @@ public class CompilationServiceImpl implements CompilationService {
     private final EventRepository eventRepository;
 
     @Override
-    @Transactional
     public CompilationDto saveCompilation(NewCompilationDto request) {
+
         if (request == null) {
             throw new BadRequestException("Запрос на добавление новой подборки не может быть null");
         }
+
         Compilation compilation = compilationMapper.mapToCompilation(request);
+
         if (request.getPinned() == null) {
             compilation.setPinned(false);
         }
+
         if (request.getEvents() != null && !request.getEvents().isEmpty()) {
-            List<Event> listEvenDto = eventRepository.findByIdIn(request.getEvents());
-            compilation.setEvents(new HashSet<>(listEvenDto));
+            List<Event> eventList = eventRepository.findByIdIn(request.getEvents());
+            compilation.setEvents(new HashSet<>(eventList));
         }
 
         Compilation saveCompilation = repository.save(compilation);
@@ -48,26 +51,30 @@ public class CompilationServiceImpl implements CompilationService {
     }
 
     @Override
-    @Transactional
     public void deleteCompilation(Long compId) {
         isContainsCompilation(compId);
         repository.deleteById(compId);
     }
 
     @Override
-    @Transactional
     public CompilationDto updateCompilation(Long compId, UpdateCompilationRequest request) {
+
         if (request == null) {
             throw new BadRequestException("Запрос на обновление подборки не может быть null");
         }
+
         Compilation compilation = isContainsCompilation(compId);
+
         if (request.getPinned() != null) {
             compilation.setPinned(request.getPinned());
         }
+
         if (request.getTitle() != null) {
             compilation.setTitle(request.getTitle());
         }
+
         if (request.getEvents() != null) {
+
             if (request.getEvents().isEmpty()) {
                 compilation.getEvents().clear();
             } else {
@@ -89,31 +96,26 @@ public class CompilationServiceImpl implements CompilationService {
     @Override
     @Transactional(readOnly = true)
     public Collection<CompilationDto> getCompilations(Boolean pinned, int from, int size) {
-        validatePagination(from, size);
         Pageable pageable = PageRequest.of(from / size, size);
         Page<Compilation> compilationsPage;
+
         if (pinned == null) {
             compilationsPage = repository.findAll(pageable);
         } else {
             compilationsPage = repository.findByPinned(pinned, pageable);
         }
-        return compilationMapper.toDtoPage(compilationsPage).getContent();
+
+        List<Compilation> compilationList = compilationsPage.getContent();
+        return compilationMapper.toCompilationDtoList(compilationList);
     }
 
     private Compilation isContainsCompilation(Long id) {
         Optional<Compilation> optCompilation = repository.findById(id);
+
         if (optCompilation.isEmpty()) {
             throw new NotFoundException("Подборка с id: " + id + " в базе отсутствует");
         }
-        return optCompilation.get();
-    }
 
-    private void validatePagination(int from, int size) {
-        if (from < 0) {
-            throw new BadRequestException("Параметр from не может быть отрицательным");
-        }
-        if (size <= 0) {
-            throw new BadRequestException("Параметр size не может быть отрицательным или равным 0");
-        }
+        return optCompilation.get();
     }
 }

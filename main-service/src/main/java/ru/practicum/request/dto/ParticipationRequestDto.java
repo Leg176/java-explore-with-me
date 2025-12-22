@@ -9,8 +9,7 @@ import java.time.LocalDateTime;
 
 import static ru.practicum.constans.StandardDateTimeFormats.DATE_TIME_FORMAT_WITH_MILLIS;
 
-@Setter
-@Getter
+@Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor

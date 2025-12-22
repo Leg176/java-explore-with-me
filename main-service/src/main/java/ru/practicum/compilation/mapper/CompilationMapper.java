@@ -1,12 +1,13 @@
 package ru.practicum.compilation.mapper;
 
 import org.mapstruct.*;
-import org.springframework.data.domain.Page;
 import ru.practicum.compilation.dto.CompilationDto;
 import ru.practicum.compilation.dto.NewCompilationDto;
 import ru.practicum.compilation.dto.UpdateCompilationRequest;
 import ru.practicum.compilation.model.Compilation;
 import ru.practicum.event.mapper.EventMapper;
+
+import java.util.List;
 
 @Mapper(componentModel = "spring", uses = {EventMapper.class})
 public interface CompilationMapper {
@@ -22,7 +23,5 @@ public interface CompilationMapper {
     @Mapping(target = "events", ignore = true)
     void updateFromRequest(UpdateCompilationRequest request, @MappingTarget Compilation compilation);
 
-    default Page<CompilationDto> toDtoPage(Page<Compilation> compilationPage) {
-        return compilationPage.map(this::mapToCompilationDto);
-    }
+    List<CompilationDto> toCompilationDtoList(List<Compilation> compilationList);
 }

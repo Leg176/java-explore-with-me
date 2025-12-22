@@ -29,12 +29,15 @@ public class StatsServiceImpl implements StatsService {
     @Override
     @Transactional(readOnly = true)
     public List<StatDto> getStatDto(LocalDateTime start, LocalDateTime end, List<String> uris, boolean unique) {
+
         if (start == null || end == null) {
             throw new BadRequestException("Временной промежуток должен быть задан");
         }
+
         if (end.isBefore(start)) {
             throw new BadRequestException("Конец диапазона не может начинаться раньше по времени, чем начало диапазона");
         }
+
         if (unique) {
             return endpointHitRepository.findUniqueStats(start, end, uris);
         } else {

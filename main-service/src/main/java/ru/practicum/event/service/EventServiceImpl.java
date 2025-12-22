@@ -63,18 +63,16 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Collection<EventShortDto> getEventsUser(Long userId, int from, int size) {
         User user = isContainsUser(userId);
-        validatePagination(from, size);
 
         Pageable pageable = PageRequest.of(from / size, size);
-        Page<Event> eventsPage = repository.findByInitiator(user, pageable);
-        return eventMapper.toDtoPage(eventsPage).getContent();
+        Page<Event> eventPage = repository.findByInitiator(user, pageable);
+        List<Event> eventList = eventPage.getContent();
+        return eventMapper.toShortDtoList(eventList);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public EventFullDto getEventUser(Long userId, Long eventId) {
         User user = isContainsUser(userId);
         Event event = checkEventForUserAffiliation(user, eventId);
@@ -121,7 +119,6 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Collection<EventFullDto> getEventsForParameters(Collection<Long> users, Collection<EventState> states,
                                                            Collection<Long> categories, LocalDateTime rangeStart,
                                                            LocalDateTime rangeEnd, int from, int size) {
@@ -134,12 +131,13 @@ public class EventServiceImpl implements EventService {
             throw new BadRequestException("rangeStart не может быть позже rangeEnd");
         }
 
-        validatePagination(from, size);
         Pageable pageable = PageRequest.of(from / size, size);
         Page<Event> events = repository.findByParameters(usersId, stateValid, categoriesId,
                 rangeStart, rangeEnd, pageable);
 
-        return eventMapper.toFullDtoPage(events).getContent();
+        List<Event> eventList = events.getContent();
+
+        return eventMapper.toFullDtoList(eventList);
     }
 
     @Override
@@ -220,12 +218,9 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Collection<EventFullDto> getEventsPublic(String text, Collection<Long> categories, Boolean paid,
                                                     LocalDateTime rangeStart, LocalDateTime rangeEnd, boolean onlyAvailable,
                                                     String sort, int from, int size, HttpServletRequest request) {
-
-        validatePagination(from, size);
 
         if ((rangeStart != null && rangeEnd != null) && rangeEnd.isBefore(rangeStart)) {
             throw new BadRequestException("Дата окончания не может быть раньше даты начала");
@@ -308,15 +303,6 @@ public class EventServiceImpl implements EventService {
         LocalDateTime dateTime = LocalDateTime.now().plusHours(2);
         if (eventDate.isBefore(dateTime)) {
             throw new ConflictException("Событие должно быть запланировано не ранее чем за 2 часа до начала");
-        }
-    }
-
-    private void validatePagination(int from, int size) {
-        if (from < 0) {
-            throw new BadRequestException("Параметр from не может быть отрицательным");
-        }
-        if (size <= 0) {
-            throw new BadRequestException("Параметр size не может быть отрицательным или равным 0");
         }
     }
 

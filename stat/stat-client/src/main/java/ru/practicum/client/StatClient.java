@@ -40,11 +40,13 @@ public class StatClient {
 
         try {
             ResponseEntity<Void> response = restTemplate.postForEntity(url, request, Void.class);
+
             if (response.getStatusCode() == HttpStatus.CREATED) {
                 log.info("Хит успешно создан");
             } else {
                 log.error("Ошибка создания хита: статус {}", response.getStatusCode());
             }
+
         } catch (HttpClientErrorException e) {
             log.error("HTTP ошибка при создании хита: {} - {}",
                     e.getStatusCode(), e.getResponseBodyAsString());
@@ -106,8 +108,6 @@ public class StatClient {
         log.info("Запрос просмотров для URI: {}", uri);
 
         List<StatDto> stats = getStats(start, end, uris, true);
-
-        System.out.println(stats);
 
         if (stats != null && !stats.isEmpty()) {
             Long views = stats.get(0).getHits();

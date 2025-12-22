@@ -17,11 +17,12 @@ import ru.practicum.error.exceptions.NotFoundException;
 import ru.practicum.event.dal.EventRepository;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
+@Transactional
 public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository repository;
@@ -29,11 +30,12 @@ public class CategoryServiceImpl implements CategoryService {
     private final EventRepository eventRepository;
 
     @Override
-    @Transactional
     public CategoryDto saveCategory(NewCategoryDto request) {
+
         if (request == null) {
             throw new BadRequestException("Запрос на добавление новой категории не может быть null");
         }
+
         isContainsCategoryByName(request.getName());
         Category category = categoryMapper.mapToCategory(request);
         Category categorySave = repository.save(category);
@@ -41,28 +43,31 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    @Transactional
     public void deleteCategory(Long catId) {
         Category category = isContainsCategory(catId);
+
         if (eventRepository.existsByCategory(category)) {
             throw new ConflictException("К данной категории привязано событие");
         }
+
         repository.deleteById(catId);
     }
 
     @Override
-    @Transactional
     public CategoryDto updateCategory(Long catId, NewCategoryDto request) {
+
         if (request == null) {
             throw new BadRequestException("Запрос на изменение категории не может быть null");
         }
+
         Category category = isContainsCategory(catId);
+
         if (category.getName().equals(request.getName())) {
             return categoryMapper.mapToCategoryDto(category);
         }
+
         isContainsCategoryByName(request.getName());
         category.setName(request.getName());
-        repository.save(category);
         return categoryMapper.mapToCategoryDto(category);
     }
 
@@ -76,32 +81,27 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     @Transactional(readOnly = true)
     public Collection<CategoryDto> getCategories(int from, int size) {
-        validatePagination(from, size);
         Pageable pageable = PageRequest.of(from / size, size);
         Page<Category> categoryPage = repository.findAll(pageable);
-        return categoryMapper.toDtoPage(categoryPage).getContent();
+        List<Category> categoryList = categoryPage.getContent();
+        return categoryMapper.toCategoryDtoList(categoryList);
     }
 
     private Category isContainsCategory(Long id) {
         Optional<Category> optCategories = repository.findById(id);
+
         if (optCategories.isEmpty()) {
             throw new NotFoundException("Категория с id: " + id + " в базе отсутствует");
         }
+
         return optCategories.get();
     }
 
     private void isContainsCategoryByName(String name) {
+
         if (repository.existsByName(name)) {
             throw new ConflictException("Категория с именем " + name + " в базе данных существует");
         }
-    }
 
-    private void validatePagination(int from, int size) {
-        if (from < 0) {
-            throw new BadRequestException("Параметр from не может быть отрицательным");
-        }
-        if (size <= 0) {
-            throw new BadRequestException("Параметр size не может быть отрицательным или равным 0");
-        }
     }
 }

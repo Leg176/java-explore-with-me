@@ -60,9 +60,4 @@ public class Event {
         Event event = (Event) o;
         return id != null && id.equals(event.id);
     }
-
-    @Override
-    public int hashCode() {
-        return getClass().hashCode();
-    }
 }

@@ -37,9 +37,4 @@ public class ParticipationRequest {
         ParticipationRequest request = (ParticipationRequest) o;
         return id != null && id.equals(request.id);
     }
-
-    @Override
-    public int hashCode() {
-        return getClass().hashCode();
-    }
 }

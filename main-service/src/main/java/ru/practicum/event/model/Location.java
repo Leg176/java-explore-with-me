@@ -26,9 +26,4 @@ public class Location {
         Location location = (Location) o;
         return id != null && id.equals(location.id);
     }
-
-    @Override
-    public int hashCode() {
-        return getClass().hashCode();
-    }
 }

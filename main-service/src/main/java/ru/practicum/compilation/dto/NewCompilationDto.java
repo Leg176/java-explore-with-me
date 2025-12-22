@@ -9,8 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Builder
-@Setter
-@Getter
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class NewCompilationDto {

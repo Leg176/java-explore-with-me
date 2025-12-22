@@ -25,7 +25,7 @@ import static ru.practicum.request.model.RequestStatus.*;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
+@Transactional
 public class RequestServiceImpl implements RequestService {
 
     private final RequestRepository repository;
@@ -34,11 +34,12 @@ public class RequestServiceImpl implements RequestService {
     private final RequestMapper requestMapper;
 
     @Override
-    @Transactional
     public ParticipationRequestDto saveRequest(Long userId, Long eventId) {
+
         if (eventId == null) {
             throw new BadRequestException("Id события должно быть указано");
         }
+
         Event event = isContainsEvent(eventId);
         User user = isContainsUser(userId);
 
@@ -66,6 +67,7 @@ public class RequestServiceImpl implements RequestService {
         if (!event.getRequestModeration() || event.getParticipantLimit() == 0) {
             request.setStatus(CONFIRMED);
             int up = eventRepository.incrementConfirmedRequestsIfWithinLimit(eventId);
+
             if (up == 0) {
                 throw new ConflictException("Достигнут лимит участников");
             }
@@ -87,18 +89,21 @@ public class RequestServiceImpl implements RequestService {
     }
 
     @Override
-    @Transactional
     public ParticipationRequestDto requestUpdate(Long userId, Long requestId) {
         User user = isContainsUser(userId);
 
         Optional<ParticipationRequest> requestOpt = repository.findByIdAndRequester(requestId, user);
+
         if (requestOpt.isEmpty()) {
             throw new NotFoundException("Запрос на участие с id: " + requestId + " для пользователя с id " + userId + " в базе отсутствует");
         }
+
         ParticipationRequest request = requestOpt.get();
+
         if (request.getStatus() == CONFIRMED) {
             eventRepository.decrementConfirmedRequests(request.getEvent().getId());
         }
+
         request.setStatus(CANCELED);
 
         return requestMapper.mapToParticipationRequestDto(request);
@@ -117,7 +122,6 @@ public class RequestServiceImpl implements RequestService {
     }
 
     @Override
-    @Transactional
     public EventRequestStatusUpdateResult updateRequestStatus(Long userId, Long eventId,
                                                               EventRequestStatusUpdateRequest request) {
         User user = isContainsUser(userId);
@@ -173,6 +177,7 @@ public class RequestServiceImpl implements RequestService {
     }
 
     private void checkLimitConfirmedRequest(Event event) {
+
         if (event.getParticipantLimit() > 0 &&
                 event.getConfirmedRequests() >= event.getParticipantLimit()) {
             throw new ConflictException("Достигнут лимит поданных подтверждённых заявок на участие в событии");
@@ -185,30 +190,37 @@ public class RequestServiceImpl implements RequestService {
         if (eventOpt.isEmpty()) {
             throw new NotFoundException("Событие созданное пользователем с id " + user.getId() + " не найдено");
         }
+
         return eventOpt.get();
     }
 
     private Event isContainsEvent(Long id) {
         Optional<Event> optEvent = eventRepository.findById(id);
+
         if (optEvent.isEmpty()) {
             throw new NotFoundException("Событие с id: " + id + " в базе отсутствует");
         }
+
         return optEvent.get();
     }
 
     private User isContainsUser(Long id) {
         Optional<User> optUser = userRepository.findById(id);
+
         if (optUser.isEmpty()) {
             throw new NotFoundException("Пользователь с id: " + id + " в базе отсутствует");
         }
+
         return optUser.get();
     }
 
     private ParticipationRequest isContainsRequest(Long id) {
         Optional<ParticipationRequest> optRequest = repository.findById(id);
+
         if (optRequest.isEmpty()) {
             throw new NotFoundException("Запрос на участие с id: " + id + " в базе отсутствует");
         }
+
         return optRequest.get();
     }
 }

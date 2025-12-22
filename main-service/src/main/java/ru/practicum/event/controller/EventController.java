@@ -1,8 +1,10 @@
 package ru.practicum.event.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.event.dto.EventFullDto;
 import ru.practicum.event.service.EventService;
@@ -15,6 +17,7 @@ import static ru.practicum.constans.StandardDateTimeFormats.DATE_TIME_FORMAT;
 @RestController
 @RequestMapping(path = "/events")
 @RequiredArgsConstructor
+@Validated
 public class EventController {
 
     private final EventService eventService;
@@ -37,8 +40,8 @@ public class EventController {
                                                     LocalDateTime rangeEnd,
                                                     @RequestParam(defaultValue = "false") boolean onlyAvailable,
                                                     @RequestParam(required = false) String sort,
-                                                    @RequestParam(defaultValue = "0") Integer from,
-                                                    @RequestParam(defaultValue = "10") Integer size,
+                                                    @RequestParam(defaultValue = "0") @Min(0) Integer from,
+                                                    @RequestParam(defaultValue = "10") @Min(1) Integer size,
                                                     HttpServletRequest request) {
 
         return eventService.getEventsPublic(text, categories, paid,

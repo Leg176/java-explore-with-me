@@ -24,9 +24,4 @@ public class Category {
         Category category = (Category) o;
         return id != null && id.equals(category.id);
     }
-
-    @Override
-    public int hashCode() {
-        return getClass().hashCode();
-    }
 }

@@ -7,8 +7,7 @@ import ru.practicum.request.model.RequestStatus;
 import java.util.HashSet;
 import java.util.Set;
 
-@Setter
-@Getter
+@Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor

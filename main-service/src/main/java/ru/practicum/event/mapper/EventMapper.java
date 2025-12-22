@@ -1,7 +1,6 @@
 package ru.practicum.event.mapper;
 
 import org.mapstruct.*;
-import org.springframework.data.domain.Page;
 import ru.practicum.category.mapper.CategoryMapper;
 import ru.practicum.event.dto.*;
 import ru.practicum.event.model.Event;
@@ -9,7 +8,6 @@ import ru.practicum.user.mapper.UserMapper;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static ru.practicum.constants.StandardDateTimeFormats.DATE_TIME_FORMAT;
 import static ru.practicum.event.model.EventState.PENDING;
@@ -93,17 +91,7 @@ public interface EventMapper {
     @Mapping(target = "title", source = "title")
     void updateFromRequestAdmin(UpdateEventAdminRequest request, @MappingTarget Event event);
 
-    default Page<EventShortDto> toDtoPage(Page<Event> eventPage) {
-        return eventPage.map(this::mapToEventShortDto);
-    }
+    List<EventFullDto> toFullDtoList(List<Event> eventList);
 
-    default Page<EventFullDto> toFullDtoPage(Page<Event> eventPage) {
-        return eventPage.map(this::mapToEventFullDto);
-    }
-
-    default List<EventFullDto> toFullDtoList(List<Event> events) {
-        return events.stream()
-                .map(this::mapToEventFullDto)
-                .collect(Collectors.toList());
-    }
+    List<EventShortDto> toShortDtoList(List<Event> eventList);
 }
