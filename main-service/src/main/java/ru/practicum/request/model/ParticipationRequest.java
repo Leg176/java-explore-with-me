@@ -29,12 +29,4 @@ public class ParticipationRequest {
     @Enumerated(EnumType.STRING)
     @Column(name = "request_status", nullable = false)
     private RequestStatus status;
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ParticipationRequest request = (ParticipationRequest) o;
-        return id != null && id.equals(request.id);
-    }
 }

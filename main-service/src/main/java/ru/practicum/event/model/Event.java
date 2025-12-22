@@ -49,12 +49,4 @@ public class Event {
     private EventState eventState;
     @Column(name = "title", nullable = false, length = 120)
     private String title;
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Event event = (Event) o;
-        return id != null && id.equals(event.id);
-    }
 }
