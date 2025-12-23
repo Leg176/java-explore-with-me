@@ -365,7 +365,7 @@ public class EventServiceImpl implements EventService {
                 .map(Event::getPublishedOn)
                 .min(LocalDateTime::compareTo);
 
-        Map<String, Long> viewsEvents ;
+        Map<String, Long> viewsEvents;
 
         if (!uris.isEmpty() && minPublished.isPresent()) {
             List<StatDto> stats = statClient.getStats(
