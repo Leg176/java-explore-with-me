@@ -39,6 +39,8 @@ public class EventServiceImpl implements EventService {
 
     private final StatClient statClient;
 
+    private static final String EVENT = "/events/";
+
     @Override
     @Transactional
     public EventFullDto saveEvent(Long userId, NewEventDto request) {
@@ -142,7 +144,7 @@ public class EventServiceImpl implements EventService {
 
         List<Event> eventList = events.getContent();
 
-        return loadStatForList(eventList);
+        return loadStatForList(eventList, true);
     }
 
     @Override
@@ -211,7 +213,7 @@ public class EventServiceImpl implements EventService {
             throw new NotFoundException("Событие с id " + eventId + " не найдено");
         }
 
-        String uri = "/events/" + eventId;
+        String uri = EVENT + eventId;
 
         RequestHitDto requestHitDto = RequestHitDto.builder()
                 .app("ewm-main-service")
@@ -256,7 +258,7 @@ public class EventServiceImpl implements EventService {
                 .build();
 
         statClient.createHit(requestHitDto);
-        List<EventFullDto> eventFullDtoList = loadStatForList(eventPage.getContent());
+        List<EventFullDto> eventFullDtoList = loadStatForList(eventPage.getContent(), true);
 
         if ("VIEWS".equals(sort)) {
             eventFullDtoList.sort(Comparator.comparing(EventFullDto::getViews).reversed());
@@ -336,7 +338,7 @@ public class EventServiceImpl implements EventService {
 
     private Long loadViews(Event event, String uri, boolean unique) {
         List<StatDto> stats = statClient.getStats(event.getPublishedOn(), LocalDateTime.now(),
-                List.of(uri), true);
+                List.of(uri), unique);
 
         Long views;
 
@@ -349,51 +351,51 @@ public class EventServiceImpl implements EventService {
         return views;
     }
 
-    private List<EventFullDto> loadStatForList(List<Event> eventList) {
-        List<String> uris = eventList.stream()
-                .filter(event -> event.getEventState() == PUBLISHED && event.getPublishedOn() != null)
-                .map(event -> "/events/" + event.getId())
-                .collect(Collectors.toList());
+    private List<EventFullDto> loadStatForList(List<Event> eventList, boolean unique) {
 
-        Optional<LocalDateTime> minPublished = eventList.stream()
+        List<Event> publisherEvent = eventList.stream()
                 .filter(event -> event.getEventState() == PUBLISHED && event.getPublishedOn() != null)
+                .toList();
+
+        List<String> uris = publisherEvent.stream()
+                .map(event -> EVENT + event.getId())
+                .toList();
+
+        Optional<LocalDateTime> minPublished = publisherEvent.stream()
                 .map(Event::getPublishedOn)
                 .min(LocalDateTime::compareTo);
+
+        Map<String, Long> viewsEvents ;
 
         if (!uris.isEmpty() && minPublished.isPresent()) {
             List<StatDto> stats = statClient.getStats(
                     minPublished.get(),
                     LocalDateTime.now(),
                     uris,
-                    true
+                    unique
             );
 
-            Map<String, Long> viewsEvents = stats.stream()
+            viewsEvents = stats.stream()
                     .collect(Collectors.toMap(
                             StatDto::getUri,
                             StatDto::getHits
                     ));
-
-            return eventList.stream()
-                    .map(event -> {
-                        EventFullDto dto = eventMapper.mapToEventFullDto(event);
-
-                        if (event.getEventState() == PUBLISHED && event.getPublishedOn() != null) {
-                            String uri = "/events/" + event.getId();
-                            Long views = viewsEvents.getOrDefault(uri, 0L);
-                            dto.setViews(views);
-                        } else {
-                            dto.setViews(0L);
-                        }
-
-                        return dto;
-                    })
-                    .collect(Collectors.toList());
+        } else {
+            viewsEvents = Map.of();
         }
+
         return eventList.stream()
                 .map(event -> {
                     EventFullDto dto = eventMapper.mapToEventFullDto(event);
-                    dto.setViews(0L);
+
+                    if (event.getEventState() == PUBLISHED && event.getPublishedOn() != null) {
+                        String uri = EVENT + event.getId();
+                        Long views = viewsEvents.getOrDefault(uri, 0L);
+                        dto.setViews(views);
+                    } else {
+                        dto.setViews(0L);
+                    }
+
                     return dto;
                 })
                 .collect(Collectors.toList());
