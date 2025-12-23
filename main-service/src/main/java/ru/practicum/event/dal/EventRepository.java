@@ -2,7 +2,6 @@ package ru.practicum.event.dal;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -20,13 +19,10 @@ import java.util.Optional;
 public interface EventRepository extends JpaRepository<Event, Long> {
     List<Event> findByIdIn(List<Long> events);
 
-    @EntityGraph(attributePaths = {"category", "location"})
     Page<Event> findByInitiator(User initiator, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"category", "location"})
     Optional<Event> findByIdAndInitiator(Long id, User initiator);
 
-    @EntityGraph(attributePaths = {"category", "initiator", "location"})
     Optional<Event> findByIdAndEventState(Long id, EventState eventState);
 
     boolean existsByCategory(Category category);
