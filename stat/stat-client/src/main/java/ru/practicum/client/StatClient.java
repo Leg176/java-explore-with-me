@@ -15,13 +15,12 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-import static ru.practicum.constants.StandardDateTimeFormats.DATE_TIME_FORMAT;
-
 @Component
 @Slf4j
 public class StatClient {
 
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern(DATE_TIME_FORMAT);
+    private static final DateTimeFormatter FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
     private final RestTemplate restTemplate;
 
@@ -41,11 +40,13 @@ public class StatClient {
 
         try {
             ResponseEntity<Void> response = restTemplate.postForEntity(url, request, Void.class);
+
             if (response.getStatusCode() == HttpStatus.CREATED) {
                 log.info("Хит успешно создан");
             } else {
                 log.error("Ошибка создания хита: статус {}", response.getStatusCode());
             }
+
         } catch (HttpClientErrorException e) {
             log.error("HTTP ошибка при создании хита: {} - {}",
                     e.getStatusCode(), e.getResponseBodyAsString());

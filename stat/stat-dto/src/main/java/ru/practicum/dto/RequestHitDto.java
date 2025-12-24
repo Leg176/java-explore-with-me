@@ -8,8 +8,7 @@ import java.time.LocalDateTime;
 
 import static ru.practicum.constants.StandardDateTimeFormats.DATE_TIME_FORMAT;
 
-@Getter
-@Setter
+@Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
