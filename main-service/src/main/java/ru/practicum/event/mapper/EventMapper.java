@@ -2,6 +2,7 @@ package ru.practicum.event.mapper;
 
 import org.mapstruct.*;
 import ru.practicum.category.mapper.CategoryMapper;
+import ru.practicum.comment.mapper.CommentMapper;
 import ru.practicum.event.dto.*;
 import ru.practicum.event.model.Event;
 import ru.practicum.user.mapper.UserMapper;
@@ -12,7 +13,7 @@ import java.util.List;
 import static ru.practicum.constants.StandardDateTimeFormats.DATE_TIME_FORMAT;
 import static ru.practicum.event.model.EventState.PENDING;
 
-@Mapper(componentModel = "spring", uses = {CategoryMapper.class, UserMapper.class})
+@Mapper(componentModel = "spring", uses = {CategoryMapper.class, UserMapper.class, CommentMapper.class})
 public interface EventMapper {
 
     @Mapping(target = "eventDate", source = "event.eventDate",
@@ -48,6 +49,7 @@ public interface EventMapper {
     @Mapping(target = "category", source = "event.category")
     @Mapping(target = "location", source = "event.location")
     @Mapping(target = "confirmedRequests", source = "event.confirmedRequests")
+    @Mapping(target = "comments", ignore = true)
     @Mapping(target = "views", ignore = true)
     EventFullDto mapToEventFullDto(Event event);
 
