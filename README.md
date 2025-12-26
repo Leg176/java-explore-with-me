@@ -202,7 +202,7 @@ Java, Spring (Boot, Data), PostgreSQL, REST API, Docker, Mockito, JUnit, Postman
 
 - PATCH /users/{userId}/comments/{commentId}/cancel - перевести статус своего комментария в разряд отменённых
 
-- GET /users/{userId}/comments поиск всех комментариев в своём событии или всех своих по параметрам:
+- GET /users/{userId}/comments поиск всех комментариев в своём событии по параметрам:
   - eventId - события в котором нужно искать комментарии (своё событие)
   - from - параметр для пагинации
   - size - параметр для пагинации
