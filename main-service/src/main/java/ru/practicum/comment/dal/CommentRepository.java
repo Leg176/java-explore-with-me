@@ -21,7 +21,7 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
             "LEFT JOIN FETCH c.event " +
             "WHERE c.event.id = :eventId " +
             "AND (:state IS NULL OR c.commentState = :state)")
-    List<Comment> findByEventId(@Param("eventId") Long eventId, @Param("state") CommentState state);
+    List<Comment> findByEventIdAndCommentState(@Param("eventId") Long eventId, @Param("state") CommentState state);
 
     @Query("SELECT c FROM Comment c " +
             "LEFT JOIN FETCH c.user " +
@@ -33,10 +33,8 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     @Query("SELECT DISTINCT c FROM Comment c " +
             "LEFT JOIN FETCH c.user " +
             "LEFT JOIN FETCH c.event " +
-            "WHERE (:userId IS NULL OR c.user.id = :userId) " +
-            "AND (:eventId IS NULL OR c.event.id = :eventId)")
-    Page<Comment> findByCommentsUserForParameters(@Param("userId") Long userId, @Param("eventId") Long eventId,
-                                                  Pageable pageable);
+            "WHERE (:eventId IS NULL OR c.event.id = :eventId)")
+    Page<Comment> findByCommentsUserForParameters(@Param("eventId") Long eventId, Pageable pageable);
 
     @Query("SELECT DISTINCT c FROM Comment c " +
             "LEFT JOIN FETCH c.user " +

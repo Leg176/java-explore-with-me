@@ -43,7 +43,7 @@ public class CommentPrivateController {
 
     @GetMapping
     public Collection<FullCommentDto> getCommentsUserForParameters(@PathVariable @NotNull @Positive Long userId,
-                                                                   @RequestParam(required = false) Long eventId,
+                                                                   @RequestParam @NotNull @Positive Long eventId,
                                                                    @RequestParam(defaultValue = "0") @Min(0) Integer from,
                                                                    @RequestParam(defaultValue = "10") @Min(1) Integer size) {
         return commentService.getCommentsUserForParameters(userId, eventId, from, size);

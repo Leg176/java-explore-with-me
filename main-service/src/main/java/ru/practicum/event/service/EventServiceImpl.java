@@ -411,7 +411,7 @@ public class EventServiceImpl implements EventService {
 
     private EventFullDto addComments(Event event) {
         EventFullDto eventFullDto = eventMapper.mapToEventFullDto(event);
-        List<Comment> comments = commentRepository.findByEventId(event.getId(), null);
+        List<Comment> comments = commentRepository.findByEventIdAndCommentState(event.getId(), null);
         List<CommentDto> commentsDto;
 
         if (comments != null && !comments.isEmpty()) {
@@ -423,7 +423,7 @@ public class EventServiceImpl implements EventService {
     }
 
     private EventFullDto addCommentsInFullDto(EventFullDto event, CommentState state) {
-        List<Comment> comments = commentRepository.findByEventId(event.getId(), state);
+        List<Comment> comments = commentRepository.findByEventIdAndCommentState(event.getId(), state);
         List<CommentDto> commentsDto;
 
         if (comments != null && !comments.isEmpty()) {

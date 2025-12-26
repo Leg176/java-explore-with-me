@@ -143,7 +143,7 @@ public class CommentServiceImpl implements CommentService {
             throw new ConflictException("Нельзя изменять отменённые комментарии");
         }
 
-        if (comment.getUser() != null || !comment.getUser().getId().equals(userId)) {
+        if (comment.getUser() != null && !comment.getUser().getId().equals(userId)) {
             throw new ConflictException("Нельзя изменять чужие комментарии");
         }
 
@@ -165,15 +165,14 @@ public class CommentServiceImpl implements CommentService {
 
         isContainsUser(userId);
 
-        if (eventId != null) {
-            Event event = isContainsEvent(eventId);
-            if (!event.getInitiator().getId().equals(userId)) {
-                throw new ConflictException("Вы не можете просматривать все комментарии этого события" +
-                        " так как не являетесь создателем события");
-            }
+        Event event = isContainsEvent(eventId);
+
+        if (!event.getInitiator().getId().equals(userId)) {
+            throw new ConflictException("Вы не можете просматривать все комментарии этого события" +
+                    " так как не являетесь создателем события");
         }
 
-        Page<Comment> commentPage = repository.findByCommentsUserForParameters(userId, eventId, pageable);
+        Page<Comment> commentPage = repository.findByCommentsUserForParameters(eventId, pageable);
         List<Comment> comments = commentPage.getContent();
 
         return commentMapper.mapToFullCommentsList(comments);
@@ -252,9 +251,5 @@ public class CommentServiceImpl implements CommentService {
         }
 
         return optUser.get();
-    }
-
-    private void checkRequestAddComment() {
-
     }
 }

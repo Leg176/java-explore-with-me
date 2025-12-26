@@ -1,7 +1,6 @@
 package ru.practicum.comment.controller;
 
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
@@ -26,22 +25,22 @@ public class CommentAdminController {
 
     @GetMapping
     public Collection<FullCommentDto> getCommentsAdminForParameters(@RequestParam(required = false) @Positive Long eventId,
-                                                               @RequestParam(required = false) CommentState status,
-                                                               @RequestParam(required = false) @Positive Long userId,
-                                                               @RequestParam(required = false)
-                                                               @DateTimeFormat(pattern = DATE_TIME_FORMAT)
-                                                               LocalDateTime rangeStart,
-                                                               @RequestParam(required = false)
-                                                               @DateTimeFormat(pattern = DATE_TIME_FORMAT)
-                                                               LocalDateTime rangeEnd,
-                                                               @RequestParam(defaultValue = "0") @Min(0) Integer from,
-                                                               @RequestParam(defaultValue = "10") @Min(1) Integer size) {
+                                                                    @RequestParam(required = false) CommentState status,
+                                                                    @RequestParam(required = false) @Positive Long userId,
+                                                                    @RequestParam(required = false)
+                                                                        @DateTimeFormat(pattern = DATE_TIME_FORMAT)
+                                                                        LocalDateTime rangeStart,
+                                                                    @RequestParam(required = false)
+                                                                        @DateTimeFormat(pattern = DATE_TIME_FORMAT)
+                                                                        LocalDateTime rangeEnd,
+                                                                    @RequestParam(defaultValue = "0") @Min(0) Integer from,
+                                                                    @RequestParam(defaultValue = "10") @Min(1) Integer size) {
         return commentService.getCommentsAdminForParameters(userId, eventId, status, rangeStart, rangeEnd, from, size);
     }
 
     @PatchMapping("/{commentId}")
     public FullCommentDto updateCommentStatusInComment(@PathVariable @NotNull @Positive Long commentId,
-                                                   @RequestParam @NotBlank CommentState state) {
+                                                       @RequestParam @NotNull CommentState state) {
         return commentService.updateCommentStatusInComment(commentId, state);
     }
 
