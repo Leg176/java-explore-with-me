@@ -19,6 +19,7 @@ import static ru.practicum.constants.StandardDateTimeFormats.DATE_TIME_FORMAT;
 @AllArgsConstructor
 @NoArgsConstructor
 public class EventFullDto {
+
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Long id;
     private String annotation;
