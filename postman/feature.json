@@ -1604,8 +1604,17 @@
 									"    \r",
 									"    const authors = [...new Set(responseBody.map(c => c.user.id))];\r",
 									"    \r",
-									"    const url = new URL(pm.request.url.toString());\r",
-									"    const size = parseInt(url.searchParams.get('size')) || 10;\r",
+									"    let size = 10;\r",
+									"        const queryParams = pm.request.url.query;\r",
+									"        if (queryParams && queryParams.members) {\r",
+									"            const sizeParam = queryParams.find(param => param.key === 'size');\r",
+									"            if (sizeParam && sizeParam.value) {\r",
+									"                const parsedSize = parseInt(sizeParam.value, 10);\r",
+									"                if (!isNaN(parsedSize) && parsedSize > 0) {\r",
+									"                    size = parsedSize;\r",
+									"                }\r",
+									"            }\r",
+									"        }\r",
 									"    \r",
 									"    pm.test(\"Количество комментариев соответствует size\", function () {\r",
 									"        pm.expect(responseBody.length).to.be.at.most(size);\r",
@@ -2221,6 +2230,10 @@
 		},
 		{
 			"key": "originalState",
+			"value": ""
+		},
+		{
+			"key": "eid",
 			"value": ""
 		}
 	]
