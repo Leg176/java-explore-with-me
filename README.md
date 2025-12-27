@@ -1,3 +1,5 @@
+## [Ссылка на pull request третьей части диплома](https://github.com/Leg176/java-explore-with-me/pull/4)
+
 # Explore with me
 
 Java, Spring (Boot, Data), PostgreSQL, REST API, Docker, Mockito, JUnit, Postman, Lombok, MapStruck
