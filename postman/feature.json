@@ -1686,6 +1686,13 @@
 									"    const rnd = new RandomUtils();\r",
 									"\r",
 									"    try {\r",
+									"        // ОЧИСТКА ПЕРЕМЕННЫХ - КРИТИЧЕСКИ ВАЖНО!\r",
+									"        pm.collectionVariables.unset(\"commentId\");\r",
+									"        pm.collectionVariables.unset(\"uid\");\r",
+									"        pm.collectionVariables.unset(\"eid\");\r",
+									"        pm.collectionVariables.unset(\"expectedState\");\r",
+									"        pm.collectionVariables.unset(\"originalState\");\r",
+									"        \r",
 									"        const user = await api.addUser(rnd.getUser());\r",
 									"        const userId = user.id;\r",
 									"        \r",
@@ -1708,6 +1715,7 @@
 									"            body: { mode: 'raw', raw: JSON.stringify(commentData) }\r",
 									"        });\r",
 									"        \r",
+									"        // ИСПРАВЛЕНИЕ: createRes.text() вместо createRes.text\r",
 									"        if (createRes.code !== 201) {\r",
 									"            throw new Error(\"Не удалось создать комментарий: \" + createRes.text());\r",
 									"        }\r",
@@ -1725,11 +1733,11 @@
 									"        \r",
 									"        pm.request.url = finalUrl;\r",
 									"        \r",
-									"        pm.request.body.update({\r",
+									"        // ИСПРАВЛЕНИЕ: Правильный синтаксис для тела запроса\r",
+									"        pm.request.body = {\r",
 									"            mode: 'raw',\r",
-									"            raw: '',\r",
-									"            options: { raw: { language: 'text' } }\r",
-									"        });\r",
+									"            raw: ''\r",
+									"        };\r",
 									"        \r",
 									"        pm.collectionVariables.set(\"expectedState\", targetState);\r",
 									"        pm.collectionVariables.set(\"originalState\", \"PUBLISHED\");\r",
@@ -2220,14 +2228,6 @@
 			"value": "http://localhost:8080"
 		},
 		{
-			"key": "uid",
-			"value": 1
-		},
-		{
-			"key": "eid",
-			"value": 1
-		},
-		{
 			"key": "state",
 			"value": ""
 		},
@@ -2237,6 +2237,14 @@
 		},
 		{
 			"key": "commentId",
+			"value": ""
+		},
+		{
+			"key": "expectedState",
+			"value": ""
+		},
+		{
+			"key": "originalState",
 			"value": ""
 		}
 	]
