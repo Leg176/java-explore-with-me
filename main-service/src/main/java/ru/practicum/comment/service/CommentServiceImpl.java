@@ -63,6 +63,7 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public CommentDto getPublishedComment(Long commentId) {
+
         Comment comment = isContainComment(commentId);
 
         if (comment.getCommentState() != CommentState.PUBLISHED) {
