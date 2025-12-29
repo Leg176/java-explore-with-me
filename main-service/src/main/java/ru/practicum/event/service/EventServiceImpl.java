@@ -10,6 +10,11 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.category.dal.CategoryRepository;
 import ru.practicum.category.model.Category;
 import ru.practicum.client.StatClient;
+import ru.practicum.comment.dal.CommentRepository;
+import ru.practicum.comment.dto.CommentDto;
+import ru.practicum.comment.mapper.CommentMapper;
+import ru.practicum.comment.model.Comment;
+import ru.practicum.comment.model.CommentState;
 import ru.practicum.dto.RequestHitDto;
 import ru.practicum.dto.StatDto;
 import ru.practicum.error.exceptions.*;
@@ -33,9 +38,11 @@ import static ru.practicum.event.model.EventState.*;
 public class EventServiceImpl implements EventService {
 
     private final EventMapper eventMapper;
+    private final CommentMapper commentMapper;
     private final EventRepository repository;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
+    private final CommentRepository commentRepository;
 
     private final StatClient statClient;
 
@@ -78,7 +85,7 @@ public class EventServiceImpl implements EventService {
     public EventFullDto getEventUser(Long userId, Long eventId) {
         User user = isContainsUser(userId);
         Event event = checkEventForUserAffiliation(userId, eventId);
-        return eventMapper.mapToEventFullDto(event);
+        return addComments(event);
     }
 
     @Override
@@ -122,7 +129,7 @@ public class EventServiceImpl implements EventService {
             }
         }
 
-        return eventMapper.mapToEventFullDto(event);
+        return addComments(event);
     }
 
     @Override
@@ -143,8 +150,9 @@ public class EventServiceImpl implements EventService {
                 rangeStart, rangeEnd, pageable);
 
         List<Event> eventList = events.getContent();
-
-        return loadStatForList(eventList, true);
+        Collection<EventFullDto> eventFullDtoCollection = loadStatForList(eventList, true);
+        addCommentsToEvents(eventFullDtoCollection, false);
+        return eventFullDtoCollection;
     }
 
     @Override
@@ -201,7 +209,7 @@ public class EventServiceImpl implements EventService {
             }
         }
 
-        return eventMapper.mapToEventFullDto(event);
+        return addComments(event);
     }
 
     @Override
@@ -230,7 +238,7 @@ public class EventServiceImpl implements EventService {
         EventFullDto eventFullDto = eventMapper.mapToEventFullDto(event);
         eventFullDto.setViews(views);
 
-        return eventFullDto;
+        return addCommentsInFullDto(eventFullDto, CommentState.PUBLISHED);
     }
 
     @Override
@@ -265,7 +273,7 @@ public class EventServiceImpl implements EventService {
         } else if ("EVENT_DATE".equals(sort)) {
             eventFullDtoList.sort(Comparator.comparing(EventFullDto::getEventDate).reversed());
         }
-
+        addCommentsToEvents(eventFullDtoList, true);
         return eventFullDtoList;
     }
 
@@ -399,5 +407,61 @@ public class EventServiceImpl implements EventService {
                     return dto;
                 })
                 .collect(Collectors.toList());
+    }
+
+    private EventFullDto addComments(Event event) {
+        EventFullDto eventFullDto = eventMapper.mapToEventFullDto(event);
+        List<Comment> comments = commentRepository.findByEventIdAndCommentState(event.getId(), null);
+        List<CommentDto> commentsDto;
+
+        if (comments != null && !comments.isEmpty()) {
+            commentsDto = commentMapper.mapToCommentsList(comments);
+            eventFullDto.setComments(commentsDto);
+        }
+
+        return eventFullDto;
+    }
+
+    private EventFullDto addCommentsInFullDto(EventFullDto event, CommentState state) {
+        List<Comment> comments = commentRepository.findByEventIdAndCommentState(event.getId(), state);
+        List<CommentDto> commentsDto;
+
+        if (comments != null && !comments.isEmpty()) {
+            commentsDto = commentMapper.mapToCommentsList(comments);
+            event.setComments(commentsDto);
+        }
+
+        return event;
+    }
+
+    private void addCommentsToEvents(Collection<EventFullDto> eventsDto,
+                                     boolean onlyPublished) {
+        if (eventsDto == null || eventsDto.isEmpty()) {
+            return;
+        }
+
+        List<Long> eventIds = eventsDto.stream()
+                .map(EventFullDto::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        if (eventIds.isEmpty()) {
+            return;
+        }
+
+        List<Comment> allComments = onlyPublished
+                ? commentRepository.findByStateAndEventIds(eventIds, CommentState.PUBLISHED)
+                : commentRepository.findByStateAndEventIds(eventIds, null);
+
+        Map<Long, List<CommentDto>> commentsByEventId = allComments.stream()
+                .collect(Collectors.groupingBy(
+                        comment -> comment.getEvent().getId(),
+                        Collectors.mapping(commentMapper::mapToCommentDto, Collectors.toList())
+                ));
+
+        eventsDto.forEach(dto -> {
+            List<CommentDto> comments = commentsByEventId.getOrDefault(dto.getId(), Collections.emptyList());
+            dto.setComments(comments);
+        });
     }
 }
