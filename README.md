@@ -46,6 +46,7 @@ git clone https://github.com/Leg176/java-explore-with-me.git
 # Запустить через Docker Compose
 cd java-explore-with-me
 docker-compose up
+```
 
 После запуска:
 
